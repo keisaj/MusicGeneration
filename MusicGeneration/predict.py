@@ -23,6 +23,8 @@ MIDI_SONGS_PATH = 'midi_songs/'
 
 DATA_NOTES_PATH = 'data/notes'
 
+OUTPUTS_PATH = 'outputs/'
+
 # CURRENTLY USED PATHS
 USED_WEIGHTS_PATH = WEIGHTS_TRAINED_ON_JAZZ_PATH
 USED_NOTES_PATH = DATA_NOTES_PATH + '_jazz'
@@ -175,7 +177,7 @@ def create_midi(prediction_output):
 
     midi_stream = stream.Stream(output_notes)
 
-    midi_stream.write('midi', fp='test_output_jazz.mid')
+    midi_stream.write('midi', fp=OUTPUTS_PATH+'test_output_jazz.mid')
 
 
 if __name__ == '__main__':
