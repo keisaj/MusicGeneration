@@ -1,10 +1,8 @@
-from music21 import converter, instrument, note, chord, corpus
+from music21 import converter, note, chord, corpus
 import glob
-import pickle
 
 
 def get_notes():  # TODO it should now be called get_tracks
-    """ Get all the notes and chords from the midi files in the ./midi_songs directory """
     # notes = []
     tracks = []
     # all_bach_paths = corpus.getComposer('haydn')

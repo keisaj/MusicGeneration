@@ -1,36 +1,26 @@
-from operator import concat
-
-from music21 import converter, instrument, note, chord, corpus, stream, duration
-from music21 import stream, key, meter
+from music21 import converter, note, chord, duration
+from music21 import key, meter
 import glob
 import pickle
-from functools import reduce
-
-from typing import List, Tuple, Type
-
-Music21_element = type('Music21_element')
 
 
-def create_dataset(info_dict_list):
-    """
-    :param info_dict_list:
-    :return:
-    """
-    all_elements = reduce(concat, [info_dict["elements_list"] for info_dict in info_dict_list])
-    save_data(info_dict_list)
-    # create dict for element names
-    element_names = sorted(set(element[0] for element in all_elements))
-    # create dict for element durations
-    element_durations = sorted(set(element[1] for element in all_elements))
-    # create dict to map names to integers
-    note_to_int = dict((note, number) for number, note in enumerate(element_names))
-    # create dict to map durations values to integers
-    duration_to_int = dict((duration, number) for number, duration in enumerate(element_durations))
-
-    # convert info_dicts into np.arrays -> network input and output TODO
-
-    print("xd")
-
+# def create_dataset(info_dict_list):
+#     """
+#     :param info_dict_list:
+#     :return:
+#     """
+#     all_elements = reduce(concat, [info_dict["elements_list"] for info_dict in info_dict_list])
+#     save_data(info_dict_list)
+#     # # create dict for element names
+#     # element_names = sorted(set(element[0] for element in all_elements))
+#     # # create dict for element durations
+#     # element_durations = sorted(set(element[1] for element in all_elements))
+#     # # create dict to map names to integers
+#     # note_to_int = dict((note, number) for number, note in enumerate(element_names))
+#     # # create dict to map durations values to integers
+#     # duration_to_int = dict((duration, number) for number, duration in enumerate(element_durations))
+#
+#     # convert info_dicts into np.arrays -> network input and output
 
 def save_data(info_dict_list):
     output_list = []
@@ -82,10 +72,6 @@ def convert_32_chords_into_notes(elemenets_list):
 
 
 def midi_to_list(filepath: str):
-    """
-    :param filepath:
-    :return:
-    """
     # get list of music21 elements from file in filepath
     elements_list = get_music21_elements(filepath)
     # convert 0.25 chords into notes - music21 recognizes 32' as 0.25 chord
@@ -109,10 +95,6 @@ def get_time_signature(piece_elements):
 
 
 def element_to_list(element):
-    """
-    :param element:
-    :return: List[str, float]
-    """
     # if element is measure
     # if isinstance(element, stream.Measure):
     #     return ['Measure', 0.0]
@@ -129,11 +111,6 @@ def element_to_list(element):
 
 
 def get_music21_elements(file_path: str, part: int = 0):
-    """
-    :param file_path:
-    :param part:
-    :return: List[Music21_element]
-    """
     score = converter.parse(file_path)  # <music21.stream.Score>
     part = score.parts[part]  # <music21.stream.Part0>
     elements = part.recurse()  # <music21.stream.iterator.RecursiveIterator for Part>
@@ -143,5 +120,5 @@ def get_music21_elements(file_path: str, part: int = 0):
 if __name__ == "__main__":
     DATASET = "classical_midi"
     dict_list = convert_files_to_dicts(path=f"../{DATASET}/*.mid")
-    create_dataset(dict_list)
+    save_data(dict_list)
     print("Done")

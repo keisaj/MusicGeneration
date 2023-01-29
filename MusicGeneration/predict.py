@@ -1,10 +1,10 @@
 import pickle
 import numpy as np
 from music21 import instrument, note, stream, chord, duration
-from train import prepare_sequences, INIT_LEARNING_RATE, EPOCHS
-
 from keras.optimizers import Adam
 from keras import models
+
+from train import prepare_sequences, INIT_LEARNING_RATE, EPOCHS
 
 MODEL_PATH = "models/" + "model_trained_on_tracks_goldberg_variations_better_seq_100"
 WEIGHTS_PATH = "weights_trained_on_tracks_goldberg_variations_better-epoch-295-loss-0.0492-val_loss-3.0617-notes_acc-0.9893-val_notes_acc-0.7097-rhythmic_acc-0.9959-val_rhythmic_acc-0.8881.hdf5"
@@ -59,7 +59,6 @@ def generate_notes(model, network_input, pitchnames: list, durations: list, n_vo
     pattern = network_input[start]
     prediction_output = []
 
-    # generate 500 notes
     for note_index in range(n_notes):
         prediction_input = np.reshape(pattern, (1, len(pattern), 2))
 
@@ -77,7 +76,6 @@ def generate_notes(model, network_input, pitchnames: list, durations: list, n_vo
         #                           scaling prediction to match input
         pattern.append([note_index / n_vocab, duration_index / d_vocab])
         pattern = pattern[1:len(pattern)]
-
 
     return prediction_output
 
@@ -124,34 +122,6 @@ def create_midi(prediction_output: list, model_path: str):
     midi_stream = stream.Stream(output_notes)
     midi_stream.write('midi', fp=f'{model_path}/{OUTPUT_NAME}.mid')
 
-# Print iterations progress
-def progressBar(iterable, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
-    """
-    Call in a loop to create terminal progress bar
-    @params:
-        iterable    - Required  : iterable object (Iterable)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
-        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
-    """
-    total = len(iterable)
-    # Progress Bar Printing Function
-    def printProgressBar (iteration):
-        percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-        filledLength = int(length * iteration // total)
-        bar = fill * filledLength + '-' * (length - filledLength)
-        print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
-    # Initial Call
-    printProgressBar(0)
-    # Update Progress Bar
-    for i, item in enumerate(iterable):
-        yield item
-        printProgressBar(i + 1)
-    # Print New Line on Complete
-    print()
 
 if __name__ == '__main__':
     generate_music(model_path=MODEL_PATH,

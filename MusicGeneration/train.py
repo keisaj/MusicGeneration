@@ -88,52 +88,11 @@ def train_network():
           batch_size=BATCH_SIZE,
           validation_data=(X_test, {'notes_output': y_test, 'rhythmic_output': z_test}))
 
-
-def get_notes():  # TODO it should now be called get_tracks
-    """ Get all the notes and chords from the midi files in the ./midi_songs directory """
-    # notes = []
-    tracks = []
-    all_bach_paths = corpus.getComposer('bach')
-    # for file in glob.glob(f"../{DATASET}/*.mid"):
-    for file in all_bach_paths:
-        notes = []
-        midi = converter.parse(file)
-
-        print("Parsing %s" % file)
-
-        notes_to_parse = None
-
-        try:  # file has instrument parts
-            s2 = instrument.partitionByInstrument(midi)
-            notes_to_parse = s2.parts[0].recurse()
-        except:  # file has notes in a flat structure
-            notes_to_parse = midi.flat.notes
-        # notes_to_parse = midi.parts.activeElementList[0].recurse()
-
-        for element in notes_to_parse:
-            # check element duration and add it to note
-            if isinstance(element, note.Note):
-                notes.append([str(element.pitch), element.duration.quarterLength])
-            elif isinstance(element, chord.Chord):
-                notes.append(['.'.join(str(n) for n in element.pitches), element.duration.quarterLength])
-            # add pause detection
-            elif isinstance(element, note.Rest):
-                notes.append([element.name, element.duration.quarterLength])
-
-        # print(notes)
-        tracks.append(notes)
-
-    with open(f'data/tracks_{DATASET}', 'wb') as filepath:
-        pickle.dump(tracks, filepath)
-
-    return tracks
-
-
 def prepare_sequences(tracks: list):
     """ Prepare the sequences used by the Neural Network """
     sequence_length = SEQUENCE_LENGTH
     all_notes = [note for track in tracks for note in track]
-    # get all pitch names
+    # get all element names
     pitchnames = sorted(set(item[0] for item in all_notes))
     # get all duration values
     durations = sorted(set(item[1] for item in all_notes))
@@ -194,7 +153,6 @@ def normalize_network_input(network_input):
 
 def train(model, network_input: np.array, network_output: np.array, epochs: int,
           initial_epoch: int, batch_size: int, weights_path: str = None, validation_data=None):
-    """ train the neural network """
 
     checkpoint = ModelCheckpoint(
         WEIGHTS_PATH_TEMPLATE,
