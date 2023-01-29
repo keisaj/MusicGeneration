@@ -1,184 +1,160 @@
-""" This module generates notes for a midi file using the
-    trained neural network """
 import pickle
-import numpy
-from music21 import instrument, note, stream, chord
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import Dropout
-from keras.layers import LSTM
-from keras.layers import BatchNormalization as BatchNorm
-from keras.layers import Activation
+import numpy as np
+from music21 import instrument, note, stream, chord, duration
+from train import prepare_sequences, INIT_LEARNING_RATE, EPOCHS
 
-WEIGHTS_PATH = 'weights/'
-WEIGHTS_TRAINED_ON_LOFI_PATH = WEIGHTS_PATH + 'weights_trained_on_lofi/'
-WEIGHTS_TRAINED_ON_JAZZ_PATH = WEIGHTS_PATH + 'weights_trained_on_jazz/'
-WEIGHTS_TRAINED_ON_GOLDBERG_VARIATIONS_PATH = WEIGHTS_PATH + 'weights_trained_on_goldberg_variations/'
-WEIGHTS_TRAINED_ON_MIDI_SONGS_PATH = WEIGHTS_PATH + 'weights_trained_on_midi_songs/'
+from keras.optimizers import Adam
+from keras import models
 
-JAZZ_PATH = 'jazz/'
-LOFI_PATH = 'lofi/'
-GOLDBERG_VARIATIONS_PATH = 'goldberg_variations/'
-MIDI_SONGS_PATH = 'midi_songs/'
+MODEL_PATH = "models/" + "model_trained_on_tracks_goldberg_variations_better_seq_100"
+WEIGHTS_PATH = "weights_trained_on_tracks_goldberg_variations_better-epoch-295-loss-0.0492-val_loss-3.0617-notes_acc-0.9893-val_notes_acc-0.7097-rhythmic_acc-0.9959-val_rhythmic_acc-0.8881.hdf5"
+NOTES_PATH = "data/tracks_goldberg_variations_better"
+N_NOTES = 500
+OUTPUT_NAME = "test_output_4"
 
-DATA_NOTES_PATH = 'data/notes'
 
-OUTPUTS_PATH = 'outputs/'
-
-# CURRENTLY USED PATHS
-USED_WEIGHTS_PATH = WEIGHTS_TRAINED_ON_JAZZ_PATH
-USED_NOTES_PATH = DATA_NOTES_PATH + '_jazz'
-USED_MIDI_PATH = JAZZ_PATH
-WEIGHTS_FILE_NAME = "weights_trained_on_jazz-improvement-{epoch:02d}-{loss:.4f}-bigger.hdf5"
-
-def generate():
+def generate_music(model_path: str, weights_path: str, notes_path: str, n_notes: int):
     """ Generate a piano midi file """
     # load the notes used to train the model
-    with open(USED_NOTES_PATH, 'rb') as filepath:
-        notes = pickle.load(filepath)
+    with open(f"{notes_path}", 'rb') as filepath:
+        tracks = pickle.load(filepath)
 
-    # Get all pitch names
-    pitchnames = sorted(set(item for item in notes))
-    # Get all pitch names
-    n_vocab = len(set(notes))
+    # create list of all notes from tracks
+    all_notes = [note for track in tracks for note in track]
+    # get all notes names
+    pitchnames = sorted(set(item[0] for item in all_notes))
+    # get all duration values
+    durations = sorted(set(item[1] for item in all_notes))
+    n_vocab = len(pitchnames)
+    d_vocab = len(durations)
 
-    network_input, normalized_input = prepare_sequences(notes, pitchnames, n_vocab)
-    model = create_network(normalized_input, n_vocab)
-    prediction_output = generate_notes(model, network_input, pitchnames, n_vocab)
-    create_midi(prediction_output)
+    network_input, network_output_notes, network_output_durations = prepare_sequences(tracks)
 
+    model = models.load_model(f"{model_path}")
 
-def prepare_sequences(notes, pitchnames, n_vocab):
-    """ Prepare the sequences used by the Neural Network """
-    # map between notes and integers and back
-    note_to_int = dict((note, number) for number, note in enumerate(pitchnames))
+    losses = {
+        "notes_output": "categorical_crossentropy",
+        "rhythmic_output": "categorical_crossentropy",
+    }
 
-    sequence_length = 100
-    network_input = []
-    output = []
-    for i in range(0, len(notes) - sequence_length, 1):
-        sequence_in = notes[i:i + sequence_length]
-        sequence_out = notes[i + sequence_length]
-        network_input.append([note_to_int[char] for char in sequence_in])
-        output.append(note_to_int[sequence_out])
+    loss_weights = {"notes_output": 1.0, "rhythmic_output": 1.0}
+    opt = Adam(learning_rate=INIT_LEARNING_RATE, decay=INIT_LEARNING_RATE / EPOCHS)
+    model.compile(optimizer=opt, loss=losses, loss_weights=loss_weights, metrics=['accuracy'])
 
-    n_patterns = len(network_input)
+    model.load_weights(
+        f"{model_path}/weights/{weights_path}")
 
-    # reshape the input into a format compatible with LSTM layers
-    normalized_input = numpy.reshape(network_input, (n_patterns, sequence_length, 1))
-    # normalize input
-    normalized_input = normalized_input / float(n_vocab)
-
-    return (network_input, normalized_input)
+    prediction_output = generate_notes(model, network_input, pitchnames, durations, n_vocab, d_vocab, n_notes)
+    create_midi(prediction_output, model_path)
 
 
-def create_network(network_input, n_vocab):
-    """ create the structure of the neural network """
-    # model = Sequential()
-    # model.add(LSTM(
-    #     512,
-    #     input_shape=(network_input.shape[1], network_input.shape[2]),
-    #     recurrent_dropout=0.3,
-    #     return_sequences=True
-    # ))
-    # model.add(LSTM(512, return_sequences=True, recurrent_dropout=0.3, ))
-    # model.add(LSTM(512))
-    # model.add(BatchNorm())
-    # model.add(Dropout(0.3))
-    # model.add(Dense(256))
-    # model.add(Activation('relu'))
-    # model.add(BatchNorm())
-    # model.add(Dropout(0.3))
-    # model.add(Dense(n_vocab))
-    # model.add(Activation('softmax'))
-    # model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
-
-    model = Sequential()
-    model.add(LSTM(
-        512,
-        input_shape=(network_input.shape[1], network_input.shape[2]),
-        return_sequences=True,
-        activation="tanh", recurrent_activation="sigmoid", unroll=False, use_bias=True
-    ))
-    model.add(LSTM(512, return_sequences=True, activation="tanh", recurrent_activation="sigmoid", unroll=False,
-                   use_bias=True))
-    model.add(LSTM(512, activation="tanh", recurrent_activation="sigmoid", unroll=False, use_bias=True))
-    model.add(BatchNorm())
-    model.add(Dropout(0.3))
-    model.add(Dense(256))
-    model.add(Activation('relu'))
-    model.add(BatchNorm())
-    model.add(Dropout(0.3))
-    model.add(Dense(n_vocab))
-    model.add(Activation('softmax'))
-    model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
-
-    # Load the weights_trained_on_midi_songs to each node
-    model.load_weights(WEIGHTS_TRAINED_ON_JAZZ_PATH+'weights_trained_on_jazz-improvement-232-1.0949-bigger.hdf5')
-
-    return model
-
-
-def generate_notes(model, network_input, pitchnames, n_vocab):
+def generate_notes(model, network_input, pitchnames: list, durations: list, n_vocab: int, d_vocab: int, n_notes: int):
     """ Generate notes from the neural network based on a sequence of notes """
     # pick a random sequence from the input as a starting point for the prediction
-    start = numpy.random.randint(0, len(network_input) - 1)
+    start = np.random.randint(0, len(network_input) - 1)
 
     int_to_note = dict((number, note) for number, note in enumerate(pitchnames))
+    int_to_duration = dict((number, duration) for number, duration in enumerate(durations))
 
     pattern = network_input[start]
     prediction_output = []
 
     # generate 500 notes
-    for note_index in range(500):
-        prediction_input = numpy.reshape(pattern, (1, len(pattern), 1))
-        prediction_input = prediction_input / float(n_vocab)
+    for note_index in range(n_notes):
+        prediction_input = np.reshape(pattern, (1, len(pattern), 2))
 
         prediction = model.predict(prediction_input, verbose=0)
 
-        index = numpy.argmax(prediction)
-        result = int_to_note[index]
-        prediction_output.append(result)
+        note_index = int(np.argmax(prediction[0]))
+        duration_index = int(np.argmax(prediction[1]))
 
-        pattern.append(index)
+        note = int_to_note[note_index]
+        duration = int_to_duration[duration_index]
+
+        prediction_output.append([note, duration])
+
+        pattern = list(pattern)
+        #                           scaling prediction to match input
+        pattern.append([note_index / n_vocab, duration_index / d_vocab])
         pattern = pattern[1:len(pattern)]
+
 
     return prediction_output
 
 
-def create_midi(prediction_output):
-    """ convert the output from the prediction to notes and create a midi file
-        from the notes """
+def create_midi(prediction_output: list, model_path: str):
     offset = 0
     output_notes = []
 
-    # create note and chord objects based on the values generated by the model
-    for pattern in prediction_output:
-        # pattern is a chord
-        if ('.' in pattern) or pattern.isdigit():
-            notes_in_chord = pattern.split('.')
+    for element, element_duration in prediction_output:
+
+        d = duration.Duration()
+        d.quarterLength = element_duration
+
+        # element is a chord
+        if ('.' in element) or element.isdigit():
+            notes_in_chord = element.split('.')
             notes = []
             for current_note in notes_in_chord:
-                new_note = note.Note(int(current_note))
+                new_note = note.Note(current_note)
                 new_note.storedInstrument = instrument.Piano()
                 notes.append(new_note)
+
             new_chord = chord.Chord(notes)
             new_chord.offset = offset
+            new_chord.duration = d
             output_notes.append(new_chord)
-        # pattern is a note
+        # element is a rest
+        elif element == 'rest':
+            new_rest = note.Rest(element)
+            new_rest.offset = offset
+            new_rest.storedInstrument = instrument.Piano()
+            new_rest.duration = d
+            output_notes.append(new_rest)
+        # element is a note
         else:
-            new_note = note.Note(pattern)
+            new_note = note.Note(element)
             new_note.offset = offset
             new_note.storedInstrument = instrument.Piano()
+            new_note.duration = d
             output_notes.append(new_note)
 
         # increase offset each iteration so that notes do not stack
-        offset += 0.5
-
+        offset += element_duration
     midi_stream = stream.Stream(output_notes)
+    midi_stream.write('midi', fp=f'{model_path}/{OUTPUT_NAME}.mid')
 
-    midi_stream.write('midi', fp=OUTPUTS_PATH+'test_output_jazz.mid')
-
+# Print iterations progress
+def progressBar(iterable, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iterable    - Required  : iterable object (Iterable)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    total = len(iterable)
+    # Progress Bar Printing Function
+    def printProgressBar (iteration):
+        percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+        filledLength = int(length * iteration // total)
+        bar = fill * filledLength + '-' * (length - filledLength)
+        print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
+    # Initial Call
+    printProgressBar(0)
+    # Update Progress Bar
+    for i, item in enumerate(iterable):
+        yield item
+        printProgressBar(i + 1)
+    # Print New Line on Complete
+    print()
 
 if __name__ == '__main__':
-    generate()
+    generate_music(model_path=MODEL_PATH,
+                   weights_path=WEIGHTS_PATH,
+                   notes_path=NOTES_PATH,
+                   n_notes=N_NOTES)
