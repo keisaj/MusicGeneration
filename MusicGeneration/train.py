@@ -13,8 +13,8 @@ from model import MusicNet
 EPOCHS = 300
 INIT_LEARNING_RATE = 0.001
 BATCH_SIZE = 256
-SEQUENCE_LENGTH = 50
-DATASET = "tracks_bach_corpus_augmented_len_200"
+SEQUENCE_LENGTH = 100
+DATASET = "tracks_all"
 
 INIT_EPOCH = 0
 
@@ -26,7 +26,8 @@ INIT_EPOCH = 0
 
 MODEL_NAME = f"model_trained_on_{DATASET}_seq_{SEQUENCE_LENGTH}"
 
-# WEIGHTS_PATH = f"./models/{MODEL_NAME}/weights/"+"weights_trained_on_tracks_bach_corpus_augmented_len_200-epoch-164-loss-0.5451-val_loss-4.0202-notes_acc-0.8682-val_notes_acc-0.4637-rhythmic_acc-0.9478-val_rhythmic_acc-0.7342.hdf5"
+# WEIGHTS_PATH = f"./models/{MODEL_NAME}/weights/"\
+#                "weights_trained_on_tracks_bach_corpus_augmented_len_200-epoch-164-loss-0.5451-val_loss-4.0202-notes_acc-0.8682-val_notes_acc-0.4637-rhythmic_acc-0.9478-val_rhythmic_acc-0.7342.hdf5"
 WEIGHTS_PATH = None
 WEIGHTS_PATH_TEMPLATE = f"models/{MODEL_NAME}/weights/weights_trained_on_{DATASET}" \
                         "-epoch-{epoch:02d}" \
@@ -58,7 +59,7 @@ def train_network():
                                        notes_vocab=network_output_notes.shape[1],
                                        duration_vocab=network_output_durations.shape[1])
 
-    plot_model(model, to_file='model.png')
+    plot_model(model, to_file='model_architecture.png')
 
     losses = {
         "notes_output": "categorical_crossentropy",
