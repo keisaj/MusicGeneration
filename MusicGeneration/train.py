@@ -1,14 +1,14 @@
-import pickle
-import numpy as np
-from music21 import converter, instrument, note, chord, corpus
-from keras.utils import np_utils
+from keras.utils import np_utils, plot_model
 from keras.callbacks import ModelCheckpoint
-from model import MusicNet
-import os
 from keras.optimizers import Adam
-import random
 from sklearn.model_selection import train_test_split
-from keras.utils import plot_model
+import numpy as np
+
+import os
+import random
+import pickle
+
+from model import MusicNet
 
 EPOCHS = 300
 INIT_LEARNING_RATE = 0.001
@@ -39,7 +39,6 @@ WEIGHTS_PATH_TEMPLATE = f"models/{MODEL_NAME}/weights/weights_trained_on_{DATASE
 
 
 def train_network():
-    """ Train a Neural Network to generate music """
 
     with open(f'data/{DATASET}', 'rb') as filepath:
         tracks = pickle.load(filepath)
@@ -115,7 +114,7 @@ def prepare_sequences(tracks: list):
 
     n_patterns = len(network_input)
 
-    # reshape the input into a format compatible with LSTM layers
+    # reshape the input into a shape compatible with LSTM layers
     network_input = np.reshape(network_input, (n_patterns, sequence_length, 2))
     # normalize input
     network_input_normalized = normalize_network_input(network_input=network_input)

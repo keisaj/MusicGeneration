@@ -121,4 +121,3 @@ if __name__ == "__main__":
     DATASET = "classical_midi"
     dict_list = convert_files_to_dicts(path=f"../{DATASET}/*.mid")
     save_data(dict_list)
-    print("Done")

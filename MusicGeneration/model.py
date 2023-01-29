@@ -1,5 +1,5 @@
 from keras import Input, Model
-from keras.layers import LSTM, BatchNormalization, Dropout, Dense, TimeDistributed
+from keras.layers import LSTM, BatchNormalization, Dropout, Dense
 
 
 class MusicNet:
@@ -7,10 +7,8 @@ class MusicNet:
     @staticmethod
     def build_lstm_branch(inputs):
         x = LSTM(units=512, return_sequences=True)(inputs)
-        # x = TimeDistributed(Dropout(0.1))(x)
         x = Dropout(0.3)(x)
         x = LSTM(units=512, return_sequences=True)(x)
-        # x = TimeDistributed(Dropout(0.1))(x)
         x = Dropout(0.3)(x)
         x = LSTM(units=512, return_sequences=False)(x)
         return x
