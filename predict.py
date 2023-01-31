@@ -4,15 +4,15 @@ from music21 import instrument, note, stream, chord, duration
 from keras.optimizers import Adam
 from keras import models
 
-from train import prepare_sequences, INIT_LEARNING_RATE, EPOCHS
+from train import INIT_LEARNING_RATE, EPOCHS
 
 N_NOTES = 300
-SEQUENCE_LENGTH = 50
+SEQUENCE_LENGTH = 100
 DATASET = "tracks_goldberg_variations"
 NOTES_PATH = f"data/{DATASET}"
 
-MODEL_PATH = "models/" + f"model_trained_on_{DATASET}_seq_{SEQUENCE_LENGTH}"
-WEIGHTS_PATH = ""
+MODEL_PATH = "models/" + f"model_trained_on_{DATASET}_seq_{SEQUENCE_LENGTH}" + "_with_validation"
+WEIGHTS_PATH = "weights_trained_on_tracks_goldberg_variations-epoch-288-loss-0.0348-val_loss-2.5772-notes_acc-0.9931-val_notes_acc-0.7832-rhythmic_acc-0.9956-val_rhythmic_acc-0.9158.hdf5"
 
 
 OUTPUT_NAME = "test_output_1"
@@ -33,8 +33,8 @@ def generate_music(model_path: str, weights_path: str, notes_path: str, n_notes:
     n_vocab = len(pitchnames)
     d_vocab = len(durations)
 
-    network_input, network_output_notes, network_output_durations = prepare_sequences(tracks=tracks,
-                                                                                      sequence_len=SEQUENCE_LENGTH)
+    with open(f"{model_path}/val_dataset", 'rb') as filepath:
+        network_input, network_output_notes, network_output_durations = pickle.load(filepath)
 
     model = models.load_model(f"{model_path}")
 

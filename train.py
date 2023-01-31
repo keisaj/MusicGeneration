@@ -18,13 +18,7 @@ DATASET = "tracks_goldberg_variations"
 
 INIT_EPOCH = 0
 
-# MODEL_NAME = f"model_lr-{INIT_LEARNING_RATE}_" \
-#              f"bs-{BATCH_SIZE}_" \
-#              f"epochs-{EPOCHS}_" \
-#              f"seqlen-{SEQUENCE_LENGTH}_" \
-#              f"trained_on_{DATASET}" + "_different_dropout"
-
-MODEL_NAME = f"model_trained_on_{DATASET}_seq_{SEQUENCE_LENGTH}"
+MODEL_NAME = f"model_trained_on_{DATASET}_seq_{SEQUENCE_LENGTH}" + "_with_validation"
 
 # WEIGHTS_PATH = f"./models/{MODEL_NAME}/weights/"\
 #                "weights_trained_on_tracks_bach_corpus_augmented_len_200-epoch-164-loss-0.5451-val_loss-4.0202-notes_acc-0.8682-val_notes_acc-0.4637-rhythmic_acc-0.9478-val_rhythmic_acc-0.7342.hdf5"
@@ -40,24 +34,47 @@ WEIGHTS_PATH_TEMPLATE = f"models/{MODEL_NAME}/weights/weights_trained_on_{DATASE
 
 
 def train_network():
+    if not os.path.exists(f"models/{MODEL_NAME}"):
+        os.mkdir(f"models/{MODEL_NAME}")
+        os.mkdir(f"models/{MODEL_NAME}/weights")
 
     with open(f'data/{DATASET}', 'rb') as filepath:
         tracks = pickle.load(filepath)
 
-    # get amount of pitch names
-    all_notes = [note for track in tracks for note in track]
-    n_vocab = len(set(note[0] for note in all_notes))
-    d_vocab = len(set(note[1] for note in all_notes))
+    if os.path.exists(f'models/{MODEL_NAME}/train_dataset') and os.path.exists(f'models/{MODEL_NAME}/test_dataset') \
+            and os.path.exists(f'models/{MODEL_NAME}/val_dataset'):
 
-    network_input, network_output_notes, network_output_durations = prepare_sequences(tracks=tracks, sequence_len=SEQUENCE_LENGTH)
-    print(network_input.shape)
-    X_train, X_test, y_train, y_test, z_train, z_test = train_test_split(network_input, network_output_notes,
-                                                                         network_output_durations,
-                                                                         test_size=0.33, random_state=42)
+        with open(f'models/{MODEL_NAME}/train_dataset', 'rb') as filepath:
+            X_train, y_train, z_train = pickle.load(filepath)
+        with open(f'models/{MODEL_NAME}/test_dataset', 'rb') as filepath:
+            X_test, y_test, z_test = pickle.load(filepath)
+        with open(f'models/{MODEL_NAME}/val_dataset', 'rb') as filepath:
+            X_val, y_val, z_val = pickle.load(filepath)
+    else:
+        network_input, network_output_notes, network_output_durations = prepare_sequences(tracks=tracks,
+                                                                                          sequence_len=SEQUENCE_LENGTH)
+
+        X_train, X_test, y_train, y_test, z_train, z_test = train_test_split(network_input, network_output_notes,
+                                                                             network_output_durations,
+                                                                             test_size=0.2, random_state=42)
+
+        X_train, X_val, y_train, y_val, z_train, z_val = train_test_split(X_train, y_train,
+                                                                          z_train,
+                                                                          test_size=0.01, random_state=42)
+
+        # save training_data
+        with open(f'models/{MODEL_NAME}/train_dataset', 'wb') as filepath:
+            pickle.dump((X_train, y_train, z_train), filepath)
+        # save test_data
+        with open(f'models/{MODEL_NAME}/test_dataset', 'wb') as filepath:
+            pickle.dump((X_test, y_test, z_test), filepath)
+        # save validation_data for prediction
+        with open(f'models/{MODEL_NAME}/val_dataset', 'wb') as filepath:
+            pickle.dump((X_val, y_val, z_val), filepath)
 
     model = MusicNet.build_final_model(input_shape=(X_train.shape[1], X_train.shape[2]),
-                                       notes_vocab=network_output_notes.shape[1],
-                                       duration_vocab=network_output_durations.shape[1])
+                                       notes_vocab=y_train.shape[1],
+                                       duration_vocab=z_train.shape[1])
 
     plot_model(model, to_file='model_architecture.png')
 
@@ -70,12 +87,21 @@ def train_network():
     opt = Adam(learning_rate=INIT_LEARNING_RATE, decay=INIT_LEARNING_RATE / EPOCHS)
     model.compile(optimizer=opt, loss=losses, loss_weights=loss_weights, metrics=['accuracy'])
 
-    if not os.path.exists(f"models/{MODEL_NAME}"):
-        model.save(f"models/{MODEL_NAME}")
-        os.mkdir(f"models/{MODEL_NAME}/weights")
+    model.save(f"models/{MODEL_NAME}/")
 
-    with open(f'models/{MODEL_NAME}/test_dataset', 'wb') as filepath:
-        pickle.dump((X_test, {'notes_output': y_test, 'rhythmic_output': z_test}), filepath)
+    info = {'n_all_samples': [sum(x) for x in zip(X_train.shape, X_test.shape, X_val.shape)][0],
+            'X_train_shape': X_train.shape,
+            'X_test_shape': X_test.shape,
+            'X_val_shape': X_val.shape,
+            'melodic_vocab': y_train.shape[1],
+            'rhythmic_vocab': z_train.shape[1],
+            'n_tracks': len(tracks)}
+
+    # write dataset info to txt.file
+    with open(f'models/{MODEL_NAME}/info.txt', 'w') as f:
+        for key in info.keys():
+            f.write(f"{key} : {info[key]}")
+            f.write('\n')
 
     print(model.summary())
 
@@ -88,8 +114,8 @@ def train_network():
           batch_size=BATCH_SIZE,
           validation_data=(X_test, {'notes_output': y_test, 'rhythmic_output': z_test}))
 
-def prepare_sequences(tracks: list, sequence_len: int):
 
+def prepare_sequences(tracks: list, sequence_len: int):
     all_notes = [note for track in tracks for note in track]
     # get all element names
     pitchnames = sorted(set(item[0] for item in all_notes))
@@ -127,24 +153,9 @@ def prepare_sequences(tracks: list, sequence_len: int):
     return network_input_normalized, network_output_notes, network_output_durations
 
 
-def shuffle_dataset(network_input, network_output):
-    assert len(network_output) == len(network_output)
-    list_to_shuffle = [[i, o] for i, o in zip(network_input, network_output)]
-    random.seed(10)
-    random.shuffle(list_to_shuffle)
-    shuffled_input = [x[0] for x in list_to_shuffle]
-    shuffled_output = [x[1] for x in list_to_shuffle]
-
-    assert len(network_input) == len(shuffled_input)
-    assert len(network_output) == len(shuffled_output)
-    return shuffled_input, shuffled_output
-
-
 def normalize_network_input(network_input):
     network_input = network_input.astype('float64')
     network_input_normalized = network_input.copy()
-    # norm_notes = np.linalg.norm(network_input[:, :, 0])
-    # norm_durations = np.linalg.norm(network_input[:, :, 1])
     network_input_normalized[:, :, 0] = network_input[:, :, 0] / network_input[:, :, 0].max()
     network_input_normalized[:, :, 1] = network_input[:, :, 1] / network_input[:, :, 1].max()
     return network_input_normalized
@@ -152,7 +163,6 @@ def normalize_network_input(network_input):
 
 def train(model, network_input: np.array, network_output: np.array, epochs: int,
           initial_epoch: int, batch_size: int, weights_path: str = None, validation_data=None):
-
     checkpoint = ModelCheckpoint(
         WEIGHTS_PATH_TEMPLATE,
         monitor='loss',

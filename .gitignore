@@ -1,3 +1,5 @@
 /models/*/weights/*
 /models/*/test_dataset
+/models/*/val_dataset
+/models/*/train_dataset
 .idea
