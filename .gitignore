@@ -1,1 +1,2 @@
-/MusicGeneration/models/
+/models/*/weights/*
+/models/*/test_dataset
