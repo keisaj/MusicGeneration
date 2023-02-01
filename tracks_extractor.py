@@ -27,7 +27,7 @@ def save_data(info_dict_list):
     for info_dict in info_dict_list:
         output_list.append(info_dict["elements_list"])
 
-    with open(f'data/tracks_{DATASET}_better', 'wb') as filepath:
+    with open(f'data/tracks_{DATASET}', 'wb') as filepath:
         pickle.dump(output_list, filepath)
 
 
@@ -118,7 +118,6 @@ def get_music21_elements(file_path: str, part: int = 0):
 
 
 if __name__ == "__main__":
-    DATASET = "classical_midi"
-    all_bach_paths = corpus.getComposer('haydn')
-    dict_list = convert_files_to_dicts(path=f"./{DATASET}/*.xml")
+    DATASET = "classical"
+    dict_list = convert_files_to_dicts(path=f"./{DATASET}/*.midi")
     save_data(dict_list)

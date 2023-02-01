@@ -13,8 +13,8 @@ from model import MusicNet
 EPOCHS = 300
 INIT_LEARNING_RATE = 0.001
 BATCH_SIZE = 256
-SEQUENCE_LENGTH = 100
-DATASET = "tracks_goldberg_variations"
+SEQUENCE_LENGTH = 50
+DATASET = "tracks_final_fantasy"
 
 INIT_EPOCH = 0
 
@@ -41,6 +41,40 @@ def train_network():
     with open(f'data/{DATASET}', 'rb') as filepath:
         tracks = pickle.load(filepath)
 
+    X_train, X_test, X_val, y_train, y_test, y_val, z_train, z_test, z_val = get_data(tracks=tracks)
+
+    model = MusicNet.build_final_model(input_shape=(X_train.shape[1], X_train.shape[2]),
+                                       notes_vocab=y_train.shape[1],
+                                       duration_vocab=z_train.shape[1])
+
+    plot_model(model, to_file='model_architecture.png')
+
+    losses = {
+        "notes_output": "categorical_crossentropy",
+        "rhythmic_output": "categorical_crossentropy",
+    }
+
+    loss_weights = {"notes_output": 1.0, "rhythmic_output": 1.0}
+    opt = Adam(learning_rate=INIT_LEARNING_RATE, decay=INIT_LEARNING_RATE / EPOCHS)
+    model.compile(optimizer=opt, loss=losses, loss_weights=loss_weights, metrics=['accuracy'])
+
+    model.save(f"models/{MODEL_NAME}/")
+
+    create_info(X_train, X_test, X_val, tracks, y_train, z_train)
+
+    print(model.summary())
+
+    train(model=model,
+          network_input=X_train,
+          network_output={'notes_output': y_train, 'rhythmic_output': z_train},
+          weights_path=WEIGHTS_PATH,
+          initial_epoch=INIT_EPOCH,
+          epochs=EPOCHS,
+          batch_size=BATCH_SIZE,
+          validation_data=(X_test, {'notes_output': y_test, 'rhythmic_output': z_test}))
+
+
+def get_data(tracks):
     if os.path.exists(f'models/{MODEL_NAME}/train_dataset') and os.path.exists(f'models/{MODEL_NAME}/test_dataset') \
             and os.path.exists(f'models/{MODEL_NAME}/val_dataset'):
 
@@ -72,23 +106,10 @@ def train_network():
         with open(f'models/{MODEL_NAME}/val_dataset', 'wb') as filepath:
             pickle.dump((X_val, y_val, z_val), filepath)
 
-    model = MusicNet.build_final_model(input_shape=(X_train.shape[1], X_train.shape[2]),
-                                       notes_vocab=y_train.shape[1],
-                                       duration_vocab=z_train.shape[1])
+    return X_train, X_test, X_val, y_train, y_test, y_val, z_train, z_test, z_val
 
-    plot_model(model, to_file='model_architecture.png')
 
-    losses = {
-        "notes_output": "categorical_crossentropy",
-        "rhythmic_output": "categorical_crossentropy",
-    }
-
-    loss_weights = {"notes_output": 1.0, "rhythmic_output": 1.0}
-    opt = Adam(learning_rate=INIT_LEARNING_RATE, decay=INIT_LEARNING_RATE / EPOCHS)
-    model.compile(optimizer=opt, loss=losses, loss_weights=loss_weights, metrics=['accuracy'])
-
-    model.save(f"models/{MODEL_NAME}/")
-
+def create_info(X_train, X_test, X_val, tracks, y_train, z_train):
     info = {'n_all_samples': [sum(x) for x in zip(X_train.shape, X_test.shape, X_val.shape)][0],
             'X_train_shape': X_train.shape,
             'X_test_shape': X_test.shape,
@@ -102,17 +123,6 @@ def train_network():
         for key in info.keys():
             f.write(f"{key} : {info[key]}")
             f.write('\n')
-
-    print(model.summary())
-
-    train(model=model,
-          network_input=X_train,
-          network_output={'notes_output': y_train, 'rhythmic_output': z_train},
-          weights_path=WEIGHTS_PATH,
-          initial_epoch=INIT_EPOCH,
-          epochs=EPOCHS,
-          batch_size=BATCH_SIZE,
-          validation_data=(X_test, {'notes_output': y_test, 'rhythmic_output': z_test}))
 
 
 def prepare_sequences(tracks: list, sequence_len: int):

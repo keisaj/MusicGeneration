@@ -1,0 +1,7 @@
+n_all_samples : 16869
+X_train_shape : (13360, 50, 2)
+X_test_shape : (3374, 50, 2)
+X_val_shape : (135, 50, 2)
+melodic_vocab : 50
+rhythmic_vocab : 29
+n_tracks : 32
