@@ -13,15 +13,15 @@ from model import MusicNet
 EPOCHS = 300
 INIT_LEARNING_RATE = 0.001
 BATCH_SIZE = 256
-SEQUENCE_LENGTH = 50
-DATASET = "tracks_final_fantasy"
+SEQUENCE_LENGTH = 100
+DATASET = "tracks_all"
 
 INIT_EPOCH = 0
 
 MODEL_NAME = f"model_trained_on_{DATASET}_seq_{SEQUENCE_LENGTH}" + "_with_validation"
 
 # WEIGHTS_PATH = f"./models/{MODEL_NAME}/weights/"\
-#                "weights_trained_on_tracks_bach_corpus_augmented_len_200-epoch-164-loss-0.5451-val_loss-4.0202-notes_acc-0.8682-val_notes_acc-0.4637-rhythmic_acc-0.9478-val_rhythmic_acc-0.7342.hdf5"
+#                "weights_trained_on_tracks_bach_corpus-epoch-283-loss-0.1609-val_loss-5.1636-notes_acc-0.9616-val_notes_acc-0.4932-rhythmic_acc-0.9844-val_rhythmic_acc-0.7466.hdf5"
 WEIGHTS_PATH = None
 WEIGHTS_PATH_TEMPLATE = f"models/{MODEL_NAME}/weights/weights_trained_on_{DATASET}" \
                         "-epoch-{epoch:02d}" \
@@ -77,7 +77,7 @@ def train_network():
 def get_data(tracks):
     if os.path.exists(f'models/{MODEL_NAME}/train_dataset') and os.path.exists(f'models/{MODEL_NAME}/test_dataset') \
             and os.path.exists(f'models/{MODEL_NAME}/val_dataset'):
-
+        print("Loading datasets from existing files...")
         with open(f'models/{MODEL_NAME}/train_dataset', 'rb') as filepath:
             X_train, y_train, z_train = pickle.load(filepath)
         with open(f'models/{MODEL_NAME}/test_dataset', 'rb') as filepath:
@@ -85,6 +85,7 @@ def get_data(tracks):
         with open(f'models/{MODEL_NAME}/val_dataset', 'rb') as filepath:
             X_val, y_val, z_val = pickle.load(filepath)
     else:
+        print("Creating datasets...")
         network_input, network_output_notes, network_output_durations = prepare_sequences(tracks=tracks,
                                                                                           sequence_len=SEQUENCE_LENGTH)
 

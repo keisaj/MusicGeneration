@@ -8,14 +8,15 @@ from train import INIT_LEARNING_RATE, EPOCHS
 
 N_NOTES = 300
 SEQUENCE_LENGTH = 50
-DATASET = "tracks_final_fantasy"
+DATASET = "tracks_all"
 NOTES_PATH = f"data/{DATASET}"
 
 MODEL_PATH = "models/" + f"model_trained_on_{DATASET}_seq_{SEQUENCE_LENGTH}" + "_with_validation"
-WEIGHTS_PATH = "weights_trained_on_tracks_final_fantasy-epoch-299-loss-0.1332-val_loss-5.5520-notes_acc-0.9718-val_notes_acc-0.6403-rhythmic_acc-0.9863-val_rhythmic_acc-0.7966.hdf5"
+WEIGHTS_PATH = "weights_trained_on_tracks_all-epoch-53-loss-1.6365-val_loss-2.9313.hdf5"
 
 
-OUTPUT_NAME = "test_output_1"
+# OUTPUT_NAME = f"output_{DATASET}{SEQUENCE_LENGTH}_best_loss"
+OUTPUT_NAME = f"output_all{SEQUENCE_LENGTH}_best_val_loss"
 
 
 def generate_music(model_path: str, weights_path: str, notes_path: str, n_notes: int):
@@ -127,7 +128,7 @@ def create_midi(prediction_output: list, model_path: str):
         # increase offset each iteration so that notes do not stack
         offset += element_duration
     midi_stream = stream.Stream(output_notes)
-    midi_stream.write('midi', fp=f'{model_path}/{OUTPUT_NAME}.mid')
+    midi_stream.write('midi', fp=f'./outputs/{OUTPUT_NAME}.mid')
 
 
 if __name__ == '__main__':
