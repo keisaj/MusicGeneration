@@ -18,7 +18,7 @@ DATASET = "tracks_all"
 
 INIT_EPOCH = 0
 
-MODEL_NAME = f"model_trained_on_{DATASET}_seq_{SEQUENCE_LENGTH}" + "_with_validation"
+MODEL_NAME = f"model_trained_on_{DATASET}_seq_{SEQUENCE_LENGTH}"
 
 # WEIGHTS_PATH = f"./models/{MODEL_NAME}/weights/"\
 #                "weights_trained_on_tracks_bach_corpus-epoch-283-loss-0.1609-val_loss-5.1636-notes_acc-0.9616-val_notes_acc-0.4932-rhythmic_acc-0.9844-val_rhythmic_acc-0.7466.hdf5"

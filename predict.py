@@ -11,7 +11,7 @@ SEQUENCE_LENGTH = 50
 DATASET = "tracks_all"
 NOTES_PATH = f"data/{DATASET}"
 
-MODEL_PATH = "models/" + f"model_trained_on_{DATASET}_seq_{SEQUENCE_LENGTH}" + "_with_validation"
+MODEL_PATH = "models/" + f"model_trained_on_{DATASET}_seq_{SEQUENCE_LENGTH}"
 WEIGHTS_PATH = "weights_trained_on_tracks_all-epoch-53-loss-1.6365-val_loss-2.9313.hdf5"
 
 
