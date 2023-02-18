@@ -1,5 +1,5 @@
 from keras.utils import np_utils, plot_model
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, TensorBoard
 from keras.optimizers import Adam
 from sklearn.model_selection import train_test_split
 import numpy as np
@@ -7,6 +7,7 @@ import numpy as np
 import os
 import random
 import pickle
+from datetime import datetime
 
 from model import MusicNet
 
@@ -174,6 +175,9 @@ def normalize_network_input(network_input):
 
 def train(model, network_input: np.array, network_output: np.array, epochs: int,
           initial_epoch: int, batch_size: int, weights_path: str = None, validation_data=None):
+    logdir = f"logs/scalars/{MODEL_NAME}/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+    tensorboard_callback = TensorBoard(log_dir=logdir)
+
     checkpoint = ModelCheckpoint(
         WEIGHTS_PATH_TEMPLATE,
         monitor='loss',
@@ -182,7 +186,7 @@ def train(model, network_input: np.array, network_output: np.array, epochs: int,
         mode='min'
     )
 
-    callbacks_list = [checkpoint]
+    callbacks_list = [checkpoint, tensorboard_callback]
     if weights_path:
         model.load_weights(weights_path)
         print('weights loaded....')

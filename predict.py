@@ -64,7 +64,8 @@ def generate_notes(model, network_input, pitchnames: list, durations: list, n_vo
     int_to_note = dict((number, note) for number, note in enumerate(pitchnames))
     int_to_duration = dict((number, duration) for number, duration in enumerate(durations))
 
-    pattern = network_input[start]
+    # pattern = network_input[start]
+    pattern = network_input[0]
     prediction_output = []
 
     for note_index in range(n_notes):

@@ -1,4 +1,4 @@
-input_shape : [15269, 300, 6]
+n_all_samples : 15269
 X_train_shape : (12092, 100, 2)
 X_test_shape : (3054, 100, 2)
 X_val_shape : (123, 100, 2)
