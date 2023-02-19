@@ -8,15 +8,14 @@ from train import INIT_LEARNING_RATE, EPOCHS
 
 N_NOTES = 300
 SEQUENCE_LENGTH = 50
-DATASET = "tracks_all"
+DATASET = "all"
 NOTES_PATH = f"data/{DATASET}"
+MODEL_NAME = f"model_trained_on_{DATASET}_seq_{SEQUENCE_LENGTH}"
+MODEL_PATH = "models/" + MODEL_NAME
+WEIGHTS_PATH = "weights_trained_on_tracks_all-epoch-298-loss-0.2786-val_loss-4.6548.hdf5"
 
-MODEL_PATH = "models/" + f"model_trained_on_{DATASET}_seq_{SEQUENCE_LENGTH}"
-WEIGHTS_PATH = "weights_trained_on_tracks_all-epoch-53-loss-1.6365-val_loss-2.9313.hdf5"
-
-
-# OUTPUT_NAME = f"output_{DATASET}{SEQUENCE_LENGTH}_best_loss"
-OUTPUT_NAME = f"output_all{SEQUENCE_LENGTH}_best_val_loss"
+# OUTPUT_NAME = f"{DATASET}_seq_{SEQUENCE_LENGTH}_best_test_loss"
+OUTPUT_NAME = f"{DATASET}_seq_{SEQUENCE_LENGTH}_best_train_loss"
 
 
 def generate_music(model_path: str, weights_path: str, notes_path: str, n_notes: int):
@@ -53,7 +52,12 @@ def generate_music(model_path: str, weights_path: str, notes_path: str, n_notes:
         f"{model_path}/weights/{weights_path}")
 
     prediction_output = generate_notes(model, network_input, pitchnames, durations, n_vocab, d_vocab, n_notes)
-    create_midi(prediction_output, model_path)
+
+    # save raw element list for hamming distance calculating
+    with open(f'distances/{OUTPUT_NAME}', 'wb') as filepath:
+        pickle.dump(prediction_output, filepath)
+
+    create_midi(prediction_output)
 
 
 def generate_notes(model, network_input, pitchnames: list, durations: list, n_vocab: int, d_vocab: int, n_notes: int):
@@ -65,7 +69,7 @@ def generate_notes(model, network_input, pitchnames: list, durations: list, n_vo
     int_to_duration = dict((number, duration) for number, duration in enumerate(durations))
 
     # pattern = network_input[start]
-    pattern = network_input[0]
+    pattern = network_input[6]
     prediction_output = []
 
     for note_index in range(n_notes):
@@ -89,7 +93,7 @@ def generate_notes(model, network_input, pitchnames: list, durations: list, n_vo
     return prediction_output
 
 
-def create_midi(prediction_output: list, model_path: str):
+def create_midi(prediction_output: list):
     offset = 0
     output_notes = []
 

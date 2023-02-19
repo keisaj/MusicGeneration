@@ -1,3 +1,5 @@
 /models/*/test_dataset
 /models/*/train_dataset
 .idea
+distances/
+hamming_distance.py
