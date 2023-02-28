@@ -5,6 +5,7 @@ from keras.optimizers import Adam
 from keras import models
 
 from train import INIT_LEARNING_RATE, EPOCHS
+from model import MusicNet
 
 N_NOTES = 300
 SEQUENCE_LENGTH = 50
@@ -12,10 +13,11 @@ DATASET = "all"
 NOTES_PATH = f"data/{DATASET}"
 MODEL_NAME = f"model_trained_on_{DATASET}_seq_{SEQUENCE_LENGTH}"
 MODEL_PATH = "models/" + MODEL_NAME
-WEIGHTS_PATH = "weights_trained_on_tracks_all-epoch-298-loss-0.2786-val_loss-4.6548.hdf5"
+WEIGHTS_PATH = "weights_trained_on_tracks_all-epoch-45-loss-2.1755-val_loss-2.9749.hdf5"
 
-# OUTPUT_NAME = f"{DATASET}_seq_{SEQUENCE_LENGTH}_best_test_loss"
-OUTPUT_NAME = f"{DATASET}_seq_{SEQUENCE_LENGTH}_best_train_loss"
+OUTPUT_NAME = f"{DATASET}_seq_{SEQUENCE_LENGTH}_best_test_loss"
+# OUTPUT_NAME = f"{DATASET}_seq_{SEQUENCE_LENGTH}_1"
+# OUTPUT_NAME = f"{DATASET}_seq_{SEQUENCE_LENGTH}_2"
 
 
 def generate_music(model_path: str, weights_path: str, notes_path: str, n_notes: int):
@@ -37,8 +39,10 @@ def generate_music(model_path: str, weights_path: str, notes_path: str, n_notes:
         print("Loading data...")
         network_input, network_output_notes, network_output_durations = pickle.load(filepath)
 
-    model = models.load_model(f"{model_path}")
-
+    # model = models.load_model(f"{model_path}")
+    model = MusicNet.build_final_model(input_shape=(network_input.shape[1], network_input.shape[2]),
+                                       notes_vocab=network_output_notes.shape[1],
+                                       duration_vocab=network_output_durations.shape[1])
     losses = {
         "notes_output": "categorical_crossentropy",
         "rhythmic_output": "categorical_crossentropy",
@@ -54,7 +58,7 @@ def generate_music(model_path: str, weights_path: str, notes_path: str, n_notes:
     prediction_output = generate_notes(model, network_input, pitchnames, durations, n_vocab, d_vocab, n_notes)
 
     # save raw element list for hamming distance calculating
-    with open(f'distances/{OUTPUT_NAME}', 'wb') as filepath:
+    with open(f'distances/new_distances/{OUTPUT_NAME}', 'wb') as filepath:
         pickle.dump(prediction_output, filepath)
 
     create_midi(prediction_output)
@@ -68,8 +72,8 @@ def generate_notes(model, network_input, pitchnames: list, durations: list, n_vo
     int_to_note = dict((number, note) for number, note in enumerate(pitchnames))
     int_to_duration = dict((number, duration) for number, duration in enumerate(durations))
 
-    # pattern = network_input[start]
-    pattern = network_input[6]
+    pattern = network_input[start]
+    # pattern = network_input[0]
     prediction_output = []
 
     for note_index in range(n_notes):
