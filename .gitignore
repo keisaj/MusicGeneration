@@ -3,3 +3,4 @@
 .idea
 distances/
 hamming_distance.py
+datasets
